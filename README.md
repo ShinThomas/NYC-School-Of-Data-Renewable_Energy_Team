@@ -58,7 +58,7 @@ To be updated as analysis progresses.
 
 ## Team
 
-| Name               | Title               | Email               |
+| Name               | Role                | Email               |
 |--------------------|---------------------|---------------------|
 | Thomas Shin        | Project Manager     | thshin@bu.edu       |
 | Dhiraj Patel       | Project Lead        | dhirajp@bu.edu      |

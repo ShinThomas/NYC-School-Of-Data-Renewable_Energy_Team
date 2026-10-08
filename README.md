@@ -68,7 +68,3 @@ To be updated as analysis progresses.
 | Nina Chiladze      | Developer           | nina25@bu.edu       |
 
 
-
-
-## License
-To be selected. Dataset licenses and terms apply separately.

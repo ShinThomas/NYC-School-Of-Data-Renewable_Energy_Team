@@ -12,13 +12,11 @@ Each key lists candidate names; the loader uses the first one it finds.
 """
 from pathlib import Path
 
-# ---------------------------------------------------------------- paths
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw"
 PROCESSED = ROOT / "data" / "processed"
 
-# ---------------------------------------------------------------- downloads
-# NYC Open Data dataset IDs. Full CSV exports, except PLUTO (only needed columns).
+# downloads
 SOCRATA = "https://data.cityofnewyork.us"
 DATASETS = {
     "ll84_annual": {
@@ -44,7 +42,7 @@ DATASETS = {
     },
 }
 
-# ---------------------------------------------------------------- column names
+# column names
 COLS = {
     "ll84_annual": {
         "property_id": ["property_id"],
@@ -91,13 +89,13 @@ COLS = {
     },
 }
 
-# ---------------------------------------------------------------- climate (VERIFY)
-HDD_65F = 4_700          # NYC annual heating degree days, 65°F base (check NOAA normals, Central Park)
-T_DESIGN_F = 15          # winter design temperature °F (check ASHRAE 99% design condition)
-T_BALANCE_F = 65         # indoor balance temperature °F
+# climate (VERIFY)
+HDD_65F = 4_700          # NYC annual heating degree days, 65 degrees F base (check NOAA normals, Central Park)
+T_DESIGN_F = 15          # winter design temperature degrees F (check ASHRAE 99% design condition)
+T_BALANCE_F = 65         # indoor balance temperature degrees F
 KBTU_PER_KWH = 3.412
 
-# ---------------------------------------------------------------- equipment (VERIFY with advisor)
+# equipment
 BOILER_EFF_DEFAULT = {"steam": 0.75, "hot_water": 0.80, "unknown": 0.78}
 HEAT_PUMPS = {
     #           seasonal COP     COP on design day
@@ -105,7 +103,7 @@ HEAT_PUMPS = {
     "gshp": {"scop": 3.7, "cop_cold": 3.4},   # ground-source
 }
 
-# Share of gas that is space heating, used ONLY when monthly data is missing.
+# Share of gas that is space heating, used ONLY when monthly data is missing
 SPACE_HEAT_SHARE_DEFAULT = {
     "multifamily": 0.65, "office": 0.80, "mixed_use": 0.60,
     "industrial": 0.40, "food_service": 0.20, "other": 0.70,
@@ -113,15 +111,15 @@ SPACE_HEAT_SHARE_DEFAULT = {
 SUMMER_MONTHS = [6, 7, 8]
 WINTER_MONTHS = [12, 1, 2]
 
-# Monthly load factor (average kW / peak kW within a month) by building type.
+# Monthly load factor (average kW / peak kW within a month) by building type
 LOAD_FACTOR = {
     "multifamily": 0.55, "office": 0.50, "mixed_use": 0.50,
     "industrial": 0.60, "food_service": 0.55, "other": 0.50,
 }
 HOURS_PER_MONTH = 730
 
-# ---------------------------------------------------------------- building type groups
-# Matched against LL84 "Largest Property Use Type" (case-insensitive substring).
+# building type groups
+# Matched against LL84 "Largest Property Use Type" (case-insensitive substring)
 TYPE_GROUPS = {
     "multifamily": ["multifamily", "residence hall", "senior living"],
     "office": ["office", "financial office", "bank branch"],
@@ -132,7 +130,7 @@ TYPE_GROUPS = {
 }
 MIXED_USE_MIN_SHARE = 0.20   # 2nd use >= 20% of floor area -> "mixed_use"
 
-# ---------------------------------------------------------------- feasibility rules
+# feasibility rules
 HEADROOM_OK = 1.1            # new winter peak / current summer peak
 HEADROOM_MAJOR = 1.5
 HEADROOM_MAX_VALID = 10      # above this, headroom comes from bad electricity data

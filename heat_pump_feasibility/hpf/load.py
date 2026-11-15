@@ -23,7 +23,7 @@ def _read(key: str, path: Path | None = None) -> pd.DataFrame:
     return df
 
 
-# ------------------------------------------------------------------ LL84 annual
+# LL84 annual
 def building_group(use: str, use2: str, gfa: float, gfa2: float) -> str:
     use_l = str(use).lower()
     if pd.notna(gfa2) and pd.notna(gfa) and gfa > 0 and gfa2 / gfa >= config.MIXED_USE_MIN_SHARE \
@@ -57,7 +57,7 @@ def load_ll84_annual(path=None) -> pd.DataFrame:
     return df
 
 
-# ------------------------------------------------------------------ LL84 monthly
+# LL84 monthly
 def load_ll84_monthly(path=None) -> pd.DataFrame:
     """Per property, for its most recent complete year:
     summer average monthly gas, and the largest summer and winter monthly electricity.
@@ -94,7 +94,7 @@ def load_ll84_monthly(path=None) -> pd.DataFrame:
     return out
 
 
-# ------------------------------------------------------------------ LL87
+# LL87
 def distribution_type(plant: str, hvac: str) -> str:
     p, h = str(plant).lower(), str(hvac).lower()
     if "district" in p or "utility" in p:
@@ -126,7 +126,7 @@ def load_ll87(path=None) -> pd.DataFrame:
                "boiler_eff", "install_year"]]
 
 
-# ------------------------------------------------------------------ PLUTO
+# PLUTO
 def load_pluto(path=None) -> pd.DataFrame:
     raw = _read("pluto", path)
     df = pick(raw, config.COLS["pluto"], "pluto", required=("bbl",))

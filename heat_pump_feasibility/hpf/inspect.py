@@ -25,7 +25,8 @@ def inspect(key: str) -> None:
     for key_name, candidates in config.COLS[key].items():
         hit = next((c for c in candidates if c in cols), None)
         print(f"  {'ok     ' if hit else 'MISSING'} {key_name:<16} -> {hit or candidates}")
-    words = ["gas", "elec", "bbl", "use_type", "year", "month", "gfa", "plant", "eff", "nta"]
+    words = ["gas", "elec", "bbl", "bin", "use_type", "year", "month", "gfa", "plant", "eff",
+             "nta", "units", "permit"]
     print("  columns that may be relevant:")
     for c in cols:
         if any(w in c for w in words):

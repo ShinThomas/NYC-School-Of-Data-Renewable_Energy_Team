@@ -66,3 +66,16 @@ def clean_bbl(s: pd.Series) -> pd.Series:
         return np.nan
 
     return s.map(one)
+
+
+def clean_bin(s: pd.Series) -> pd.Series:
+    """Return a 7-digit BIN string, or NaN. LL84 lists like '1000003;1000004' keep the first."""
+    def one(x):
+        if pd.isna(x):
+            return np.nan
+        x = str(x).split(";")[0].split(",")[0].strip().split(".")[0]
+        if x.isdigit() and len(x) == 7 and x[0] in "12345" and not x.endswith("000000"):
+            return x
+        return np.nan
+
+    return s.map(one)

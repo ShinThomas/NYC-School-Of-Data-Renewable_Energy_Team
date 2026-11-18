@@ -1,11 +1,11 @@
-"""Load and clean each raw dataset into a tidy table keyed by BBL or property ID."""
+"""Load and clean each raw dataset into a tidy table keyed by BBL, BIN or property ID."""
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from hpf import config
-from hpf.utils import clean_bbl, norm, pick, to_num
+from hpf.utils import clean_bbl, clean_bin, norm, pick, to_num
 
 
 def _read(key: str, path: Path | None = None) -> pd.DataFrame:
@@ -39,10 +39,11 @@ def load_ll84_annual(path=None) -> pd.DataFrame:
     raw = _read("ll84_annual", path)
     df = pick(raw, config.COLS["ll84_annual"], "ll84_annual",
               required=("property_id", "bbl", "use_type", "gas_kbtu", "elec_kwh", "gfa"))
-    for c in ["gfa", "use_type_2_gfa", "gas_kbtu", "oil2_kbtu", "oil4_kbtu", "steam_kbtu", "elec_kwh"]:
+    for c in ["gfa", "use_type_2_gfa", "gas_kbtu", "oil2_kbtu", "oil4_kbtu", "steam_kbtu", "elec_kwh", "units"]:
         df[c] = to_num(df[c])
     df["year"] = to_num(df["year"])
     df["bbl"] = clean_bbl(df["bbl"])
+    df["bin"] = clean_bin(df["bin"])
 
     # one row per property: most recent year
     df = df.sort_values("year").drop_duplicates("property_id", keep="last")
@@ -67,6 +68,8 @@ def load_ll84_monthly(path=None) -> pd.DataFrame:
              required=("property_id", "month", "gas_kbtu"))
     m["gas_kbtu"] = to_num(m["gas_kbtu"])
     m["elec_kwh"] = to_num(m["elec_kbtu"]) / config.KBTU_PER_KWH
+
+    # Month may be "Jan", "January", "1", or a full date; year is in calendar_year.
     month_txt = m["month"].astype(str).str.strip()
     as_date = pd.to_datetime(month_txt, format="mixed", errors="coerce")
     mo = pd.to_datetime(month_txt.str[:3], format="%b", errors="coerce").dt.month
@@ -131,11 +134,34 @@ def load_pluto(path=None) -> pd.DataFrame:
     raw = _read("pluto", path)
     df = pick(raw, config.COLS["pluto"], "pluto", required=("bbl",))
     df["bbl"] = clean_bbl(df["bbl"])
-    for c in ["lotarea", "bldgarea", "numfloors", "yearbuilt"]:
+    for c in ["lotarea", "bldgarea", "numfloors", "yearbuilt", "unitsres", "resarea"]:
         df[c] = to_num(df[c])
     floors = df["numfloors"].where(df["numfloors"] > 0)
     footprint = df["bldgarea"] / floors
     df["open_lot_sqft"] = (df["lotarea"] - footprint).clip(lower=0)
     df["landmark_or_hist"] = df["landmark"].notna() | df["histdist"].notna()
     return df.dropna(subset=["bbl"]).drop_duplicates("bbl")[
-        ["bbl", "yearbuilt", "open_lot_sqft", "landmark_or_hist"]]
+        ["bbl", "yearbuilt", "open_lot_sqft", "landmark_or_hist", "unitsres", "resarea", "bldgarea"]]
+
+
+# boiler permits
+def load_boiler_permits(path=None) -> pd.DataFrame:
+    """One row per BIN with a boiler-related DOB permit.
+
+    Adds the permit's heating system label when a permit names it
+    (steam vs hot water), and the latest permit year if that column exists.
+    """
+    raw = _read("boiler_permits", path)
+    df = pick(raw, config.COLS["boiler_permits"], "boiler_permits", required=("bin",))
+    df["bin"] = clean_bin(df["bin"])
+    labels = (df["dob_now_systems"].fillna("").astype(str) + " "
+              + df["bis_systems"].fillna("").astype(str)).str.lower()
+    df["permit_system"] = np.select(
+        [labels.str.contains("steam"), labels.str.contains("hot water")],
+        ["steam", "hot_water"], default="boiler_unspecified")
+    df["boiler_permit"] = True
+    df["last_permit_year"] = to_num(df["last_permit_year"])
+    return (df.dropna(subset=["bin"])
+              .sort_values("last_permit_year")
+              .drop_duplicates("bin", keep="last")
+              [["bin", "boiler_permit", "permit_system", "last_permit_year"]])

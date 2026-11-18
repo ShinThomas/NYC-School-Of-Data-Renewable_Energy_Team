@@ -1,8 +1,4 @@
-"""Run the full heat pump feasibility + price-of-switch pipeline.
-
-Usage:
-    python -m hpf.run
-    python -m hpf.run --ll87 path/to/LL87_2019-2024.xlsx   # use a local LL87 file
+"""full heat pump feasibility + price-of-switch pipeline
 
 Outputs (data/processed/):
     hp_feasibility_buildings.csv   one row per building (feasibility + price)
@@ -10,6 +6,7 @@ Outputs (data/processed/):
     hp_price_by_type.csv           price summary by building type and tier
     hp_grid_by_nta.csv             added winter peak by neighborhood
     hp_grid_citywide.csv           citywide added peak, air-source vs ground-source
+    price_of_switch.csv            slim price file for the decarbonization score (priced buildings only)
 """
 import argparse
 
@@ -41,6 +38,17 @@ OUT_COLS = [
     "price_gshp_low", "price_gshp_mid", "price_gshp_high", "incentive_gshp",
     "price_gshp_net", "price_gshp_net_per_sqft", "price_gshp_net_is_zero",
     "price_confidence",
+]
+
+# Slim file for the decarbonization score: one row per property_id, priced buildings only.
+# Includes the heating inputs (fuel_space_kbtu, hp_kwh_*) so the emissions calculation
+# describes the same retrofit as the price.
+PRICE_OUT_COLS = [
+    "property_id", "bbl", "bin", "nta", "building_type", "gfa", "feasibility_tier",
+    "fuel_space_kbtu", "hp_kwh_ashp", "hp_kwh_gshp", "gshp_space_ok",
+    "price_ashp_mid", "price_ashp_net", "price_ashp_net_is_zero", "price_ashp_net_per_sqft",
+    "price_gshp_mid", "price_gshp_net", "price_gshp_net_is_zero",
+    "cost_basis", "price_drivers", "price_confidence",
 ]
 
 MONTHLY_COLS = ["gas_summer_avg_kbtu", "elec_summer_max_kwh", "elec_winter_max_kwh",
@@ -144,12 +152,18 @@ def main():
     s["by_nta"].to_csv(config.PROCESSED / "hp_grid_by_nta.csv", index=False)
     s["citywide"].to_csv(config.PROCESSED / "hp_grid_citywide.csv", index=False)
 
+    priced = df[df["price_ashp_net"].notna()][PRICE_OUT_COLS]
+    if priced["property_id"].duplicated().any():
+        raise ValueError("price_of_switch.csv has duplicate property_id values")
+    priced.to_csv(config.PROCESSED / "price_of_switch.csv", index=False)
+
     print("\nTier counts:\n", df.feasibility_tier.value_counts(dropna=False).sort_index())
     print("\nCitywide:\n", s["citywide"].round(1).to_string(index=False))
     p = df.price_ashp_net_per_sqft.dropna()
     print(f"\nPrice of switch (air-source, net): median ${p.median():,.2f}/sq ft, "
           f"middle 50% ${p.quantile(.25):,.2f} to ${p.quantile(.75):,.2f}/sq ft")
     print("Price confidence:", df.price_confidence.value_counts().to_dict())
+    print(f"price_of_switch.csv: {len(priced):,} priced buildings, {len(PRICE_OUT_COLS)} columns")
     print(f"\nSaved to {config.PROCESSED}")
 
 
